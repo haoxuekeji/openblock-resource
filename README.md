@@ -1,19 +1,22 @@
 # openblock-resource
 
-![GitHub Workflow Status](https://img.shields.io/github/workflow/status/openblockcc/openblock-resource/publish)
+[![Publish npm package](https://github.com/openblockcc/openblock-resource/actions/workflows/publish.yml/badge.svg)](https://github.com/openblockcc/openblock-resource/actions/workflows/publish.yml)
+![GitHub](https://img.shields.io/github/license/openblockcc/openblock-resource)
 
 Provide a local resource server for openblock.
 
 ## Instructions
 
-```bash
-npm install
-npm run fetch
-npm start
-```
+- Start resource server
 
-To test upgrade funciton, run:
+    ```bash
+    npm install
+    npm run fetch
+    npm start
+    ```
 
-```bash
-npm test
-```
+- Test update funciton, run:
+
+    ```bash
+    npm test
+    ```

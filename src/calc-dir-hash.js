@@ -22,9 +22,9 @@ const calcDirHash = dir => new Promise((resolve, reject) => {
 const checkDirHash = (dir, hash) =>
     calcDirHash(dir)
         .then(h => {
-            if (h === hash) {
+           if (h === hash) {
                 return Promise.resolve();
-            }
+           }
             return Promise.reject(`${dir} has failed the folder checksum detection`);
         });
 

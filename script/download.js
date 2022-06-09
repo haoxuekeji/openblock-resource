@@ -145,7 +145,6 @@ getLatest()
                             })
                             .then(() => {
                                 fs.rmSync(downloadPath, {recursive: true, force: true});
-
                                 console.log(clc.green(`\nExternal resource has been successfully downloaded and extracted to path: ${extractPath}`)); // eslint-disable-line max-len
                             })
                             .catch(() => {

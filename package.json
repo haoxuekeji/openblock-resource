@@ -12,7 +12,7 @@
     "build": "rimraf dist && npm run build:extension && npm run build:device",
     "deploy": "npm run fetch && npm run build",
     "ext:opt-size": "opt-size --dir=external-resources",
-    "ext:gen-config": "gen-config --dir=external-resources --repo=openblockcc/external-resources-v2",
+    "ext:gen-config": "gen-config --dir=external-resources --repo=openblockcc/external-resources",
     "ext:i18n-extract": "i18n-extract  --dir=external-resources",
     "ext:i18n-push": "i18n-push --dir=external-resources",
     "ext:i18n-update": "i18n-update --dir=external-resources",

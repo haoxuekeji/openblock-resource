@@ -81,11 +81,12 @@ const download = (url, dest) => {
                 const progress = new Progress(res, {throttle: 100});
 
                 progress.on('progress', state => {
-                    bar.update(state.progress, {
-                        tokenSpeed: state.rateh,
-                        tokenSize: `${state.doneh}/${state.totalh}`,
-                        tokenRemaining: formatTime(state.eta)
-                    });
+                    console.log(state)
+                    // bar.update(state.progress, {
+                    //     tokenSpeed: state.rateh,
+                    //     tokenSize: `${state.doneh}/${state.totalh}`,
+                    //     tokenRemaining: formatTime(state.eta)
+                    // });
                 });
             })
             .catch(err => reject(err));

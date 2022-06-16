@@ -73,7 +73,7 @@ const download = (url, dest) => {
                 });
 
                 fileStream.on('finish', () => {
-                    bar.update(1);
+                    //bar.update(1);
                     console.log(`${path.basename(dest)} download complete`);
                     return resolve();
                 });

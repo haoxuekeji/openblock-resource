@@ -88,7 +88,7 @@ const download = (url, dest) => {
                 const progress = new Progress(res, {throttle: 100});
 
                 progress.on('progress', state => {
-                    console.log(state)
+                    //console.log(state)
                     // bar.update(state.progress, {
                     //     tokenSpeed: state.rateh,
                     //     tokenSize: `${state.doneh}/${state.totalh}`,
@@ -154,10 +154,11 @@ getLatest()
                                 return checkDirHash(extractPath, dirHash);
                             })
                             .then(() => {
-                                fs.rmSync(downloadPath, {recursive: true, force: true});
+                                fs.removeSync(downloadPath, {recursive: true, force: true});
                                 console.log(clc.green(`\nExternal resource has been successfully downloaded and extracted to path: ${extractPath}`)); // eslint-disable-line max-len
                             })
-                            .catch(() => {
+                            .catch((err) => {
+                                console.log(err)
                                 console.error(clc.red(`ERR!: ${extractPath} has failed the folder checksum detection`));
                                 process.exit(1);
                             });

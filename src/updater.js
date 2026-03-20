@@ -10,10 +10,7 @@ const Progress = require('node-fetch-progress');
 const {AbortController} = require('node-abort-controller');
 
 const {UPGRADE_STATE, UPGRADE_PROGRESS, UPGRADE_CONTENT} = require('./state');
-const {checkDirHash} = require('./calc-dir-hash');
 const {formatTime} = require('./format');
-const {DIRECTORY_NAME} = require('./config');
-const getConfigHash = require('./get-config-hash');
 
 class ResourceUpdater {
     constructor (config, workDir) {
@@ -179,19 +176,8 @@ class ResourceUpdater {
             checksumUrl = `https://${this._config.name}.${this._config.region}.digitaloceanspaces.com/${this._config.path}/${checksumName}`;
 
         } else if (this._provider === 'gitee') {
-            if (this.releaseInfo) {
-                for (const idx in this.releaseInfo.assets) {
-                    const info = this.releaseInfo.assets[idx];
-                    const name = info.name;
-                    if (!name) {
-                        continue;
-                    } if (name.indexOf('external-resources') !== -1) {
-                        resourceUrl = `${info.browser_download_url}/${info.name}`;
-                    } else if (name.indexOf('checksums-sha256') !== -1) {
-                        checksumUrl = `${info.browser_download_url}/${info.name}`;
-                    }
-                }
-            }
+            resourceUrl = `https://gitee.com/${this._config.repo}/releases/download/${version}/${resourceName}`;
+            checksumUrl = `https://gitee.com/${this._config.repo}/releases/download/${version}/${checksumName}`;
         }
 
         const resourcePath = path.join(downloadPath, resourceName);
@@ -228,7 +214,8 @@ class ResourceUpdater {
                     if (option.signal.aborted){
                         return this.handleAbort();
                     }
-                    const extractPath = path.resolve(this._workDir, DIRECTORY_NAME);
+                    console.log('this._workDir', this._workDir);
+                    const extractPath = path.resolve(this._workDir, 'external-resources');
                     this.progress = UPGRADE_PROGRESS.deletCache;
                     this.reportStatus(option.callback, {
                         phase: UPGRADE_STATE.deleting,
@@ -248,24 +235,7 @@ class ResourceUpdater {
                     });
                     return extract(resourcePath, {dir: extractPath})
                         .then(() => {
-                            // Step 5: check checksum of extracted directory.
-                            this.progress = UPGRADE_PROGRESS.verifyCache;
-                            this.reportStatus(option.callback, {
-                                phase: UPGRADE_STATE.verifying,
-                                progress: this.progress,
-                                state: {name: UPGRADE_CONTENT.cache}
-                            });
-
-                            const configFilePath = path.resolve(extractPath, 'config.json');
-                            const dirHash = getConfigHash(configFilePath);
-                            if (!dirHash) {
-                                console.warn(clc.yellow(`WARN: no hash value found in ${configFilePath}`));
-                                return Promise.resolve();
-                            }
-                            return checkDirHash(extractPath, dirHash);
-                        })
-                        .then(() => {
-                            // Step 6.1: delete downloaded files.
+                            // Step 5: delete downloaded files.
                             this.progress = UPGRADE_PROGRESS.deletZip;
                             this.reportStatus(option.callback, {
                                 phase: UPGRADE_STATE.deleting,
@@ -277,12 +247,6 @@ class ResourceUpdater {
                             fs.rmSync(checksumPath, {recursive: true, force: true});
                             lockFile.unlockSync(this._workDir);
                             return Promise.resolve();
-                        })
-                        .catch(err => {
-                            // Step 6.2: if check failed, delete extracted directory.
-                            fs.rmSync(extractPath, {recursive: true, force: true});
-                            lockFile.unlockSync(this._workDir);
-                            return Promise.reject(err);
                         });
                 }
                 lockFile.unlockSync(this._workDir);

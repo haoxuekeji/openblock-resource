@@ -2,8 +2,6 @@ const requireAll = require('require-all');
 const path = require('path');
 const fs = require('fs');
 
-const {EXTENSION_CLASS, DEVICE_TYPE} = require('./config');
-
 const TYPE = 'extensions';
 
 /**
@@ -15,34 +13,55 @@ class OpenBlockExtension {
         this.type = TYPE;
     }
 
-    assembleData (userDataPath, formatMessage) {
+    assembleData (dataPath, formatMessage) {
         const extensionsThumbnailData = [];
 
-        DEVICE_TYPE.forEach(deviceType => {
-            EXTENSION_CLASS.forEach(extClass => {
-                const extPath = path.join(userDataPath, this.type, deviceType, extClass);
-                if (fs.existsSync(extPath)) {
-                    const data = requireAll({dirname: extPath, filter: /index.js$/, recursive: true});
-                    Object.entries(data).forEach(ext => {
-                        // Modify the attribute to point to the real address.
-                        const content = ext[1]['index.js'](formatMessage);
-                        const basePath = path.join(this.type, deviceType, extClass, ext[0]);
-
-                        if (content.iconURL) {
-                            content.iconURL = path.join(basePath, content.iconURL);
-                        }
-                        content.blocks = path.join(basePath, content.blocks);
-                        content.generator = path.join(basePath, content.generator);
-                        content.toolbox = path.join(basePath, content.toolbox);
-                        content.msg = path.join(basePath, content.msg);
-                        if (content.library) {
-                            content.library = path.join(extPath, ext[0], content.library);
-                        }
-                        extensionsThumbnailData.push(content);
+        const extPath = path.join(dataPath, this.type);
+        if (fs.existsSync(extPath)) {
+            const data = requireAll({dirname: extPath, filter: /index.js$/, recursive: true});
+            Object.entries(data).forEach(ext => {
+                const translationsFile = path.join(extPath, ext[0], 'translations.js');
+                let translations;
+                if (fs.existsSync(translationsFile)){
+                    // eslint-disable-next-line global-require
+                    const locales = require(translationsFile);
+                    translations = locales.getInterfaceTranslations();
+                    formatMessage.setup({
+                        translations: translations
                     });
                 }
+
+                // Modify the attribute to point to the real address.
+                const content = ext[1]['index.js'](formatMessage);
+                const basePath = path.join(this.type, ext[0]);
+
+                // Convert a local file path to a network address
+                if (content.iconURL) {
+                    content.iconURL = path.join(basePath, content.iconURL);
+                }
+                if (content.blocks) {
+                    content.blocks = path.join(basePath, content.blocks);
+                }
+                if (content.generator) {
+                    content.generator = path.join(basePath, content.generator);
+                }
+                if (content.toolbox) {
+                    content.toolbox = path.join(basePath, content.toolbox);
+                }
+                if (content.library) {
+                    // Used directly by the toolchain and uploader, requires an absolute address
+                    content.library = path.join(dataPath, basePath, content.library);
+                }
+                if (content.main) {
+                    content.main = path.join(basePath, content.main);
+                }
+                if (content.translations) {
+                    content.translations = path.join(basePath, content.translations);
+                }
+
+                extensionsThumbnailData.push(content);
             });
-        });
+        }
 
         return extensionsThumbnailData;
     }

@@ -1,9 +1,6 @@
 const formatMessage = require('format-message');
 const express = require('express');
 const Emitter = require('events');
-const path = require('path');
-const fs = require('fs');
-const {defaultsDeep} = require('lodash');
 const fetch = require('node-fetch');
 const http = require('http');
 const clc = require('cli-color');
@@ -14,9 +11,7 @@ const {
     DEFAULT_HOST,
     DEFAULT_PORT,
     SERVER_NAME,
-    REOPEN_INTERVAL,
-    OFFICIAL_TRANSLATIONS_FILE,
-    THIRD_PARTY_TRANSLATIONS_FILE
+    REOPEN_INTERVAL
 } = require('./config');
 
 /**
@@ -26,12 +21,14 @@ class ResourceServer extends Emitter{
 
     /**
      * Construct a OpenBlock resource server object.
-     * @param {string} userDataPath - the path of user data.
+     * @param {string} cacheResourcesPath - the path of cache resources.
+     * @param {string} builtinResourcesPath - the path of builtin resources.
      */
-    constructor (userDataPath) {
+    constructor (cacheResourcesPath, builtinResourcesPath) {
         super();
 
-        this._userDataPath = userDataPath;
+        this._cacheResourcesPath = cacheResourcesPath;
+        this._builtinResourcesPath = builtinResourcesPath;
         this._host = DEFAULT_HOST;
         this._port = DEFAULT_PORT;
 
@@ -43,41 +40,38 @@ class ResourceServer extends Emitter{
         this.extensionsIndexData = {};
     }
 
-    // If the 18n cache is not exist, generate it.
-    generate18nCache (locale) {
-        if (this.deviceIndexData[`${locale}`] && this.extensionsIndexData[`${locale}`]) {
+    // If the id is the same, cached data is used first
+    mergeData (cacheData, builtinData, attributes) {
+        const resultMap = new Map();
+
+        cacheData.forEach(item => resultMap.set(item[`${attributes}`], item));
+        builtinData.forEach(item => {
+            if (!resultMap.has(item[`${attributes}`])) {
+                resultMap.set(item[`${attributes}`], item);
+            }
+        });
+        return Array.from(resultMap.values());
+    }
+
+    // If the cache is not exist, generate it.
+    generateCache (locale) {
+        if (this.deviceIndexData[`${locale}`] &&
+            this.extensionsIndexData[`${locale}`]) {
             return;
         }
 
-        let officialTranslations;
-        let thirdPartyTranslations;
-
-        try {
-            officialTranslations = JSON.parse(fs.readFileSync(path.join(this._userDataPath, OFFICIAL_TRANSLATIONS_FILE), 'utf8')); // eslint-disable-line max-len
-            thirdPartyTranslations = JSON.parse(fs.readFileSync(path.join(this._userDataPath, THIRD_PARTY_TRANSLATIONS_FILE), 'utf8')); // eslint-disable-line max-len
-
-        } catch (e) {
-            console.error(clc.red(`ERR!: ${e}`)); // eslint-disable-line max-len
-            this.emit('error', e);
-        }
-
-        const translations = defaultsDeep(
-            {},
-            officialTranslations,
-            thirdPartyTranslations
-        );
-
-        this._formatMessage[`${locale}`] = formatMessage.namespace();
-        this._formatMessage[`${locale}`].setup({
-            locale: locale,
-            translations: translations
+        this._formatMessage = formatMessage.namespace();
+        this._formatMessage.setup({
+            locale: locale
         });
 
         this.deviceIndexData[`${locale}`] =
-                JSON.stringify(this.devices.assembleData(this._userDataPath, this._formatMessage[`${locale}`]));
+            JSON.stringify(this.mergeData(this.devices.assembleData(this._cacheResourcesPath, this._formatMessage),
+                this.devices.assembleData(this._builtinResourcesPath, this._formatMessage), 'deviceId'));
 
         this.extensionsIndexData[`${locale}`] =
-                JSON.stringify(this.extensions.assembleData(this._userDataPath, this._formatMessage[`${locale}`]));
+            JSON.stringify(this.mergeData(this.extensions.assembleData(this._cacheResourcesPath, this._formatMessage),
+                this.extensions.assembleData(this._builtinResourcesPath, this._formatMessage), 'extensionId'));
     }
 
     isSameServer (host, port) {
@@ -119,15 +113,20 @@ class ResourceServer extends Emitter{
             res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept');
             next();
         });
-        this._app.use(express.static(`${this._userDataPath}`));
+        this._app.use(express.static(`${this._cacheResourcesPath}`));
+        this._app.use(express.static(`${this._builtinResourcesPath}`));
 
         this._app.get('/', (req, res) => {
             res.send(SERVER_NAME);
         });
 
         this._app.get('/:type/:locale', (req, res) => {
-
             const type = req.params.type;
+
+            if (type !== 'devices' && type !== 'extensions') {
+                res.sendStatus(404);
+                return;
+            }
 
             let locale;
             if (req.params.locale.indexOf('.') === -1) {
@@ -136,11 +135,12 @@ class ResourceServer extends Emitter{
                 locale = req.params.locale.slice(0, req.params.locale.indexOf('.'));
             }
 
+            // Generate data cache after first access
             if (type === this.extensions.type) {
-                this.generate18nCache(locale);
+                this.generateCache(locale);
                 res.send(this.extensionsIndexData[`${locale}`]);
             } else if (type === this.devices.type) {
-                this.generate18nCache(locale);
+                this.generateCache(locale);
                 res.send(this.deviceIndexData[`${locale}`]);
             }
         });

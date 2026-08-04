@@ -5,6 +5,24 @@ const fs = require('fs');
 const TYPE = 'extensions';
 
 /**
+ * List browser-uploadable MicroPython library files for one extension.
+ * @param {string} libPath absolute library directory.
+ * @param {string} baseUrl public URL prefix.
+ * @return {Array.<string>} Python file URLs.
+ */
+const listLibraryFiles = (libPath, baseUrl) => {
+    if (!fs.existsSync(libPath) || !fs.statSync(libPath).isDirectory()) {
+        return [];
+    }
+    return fs.readdirSync(libPath)
+        .filter(entry => {
+            const fullPath = path.join(libPath, entry);
+            return fs.statSync(fullPath).isFile() && entry.endsWith('.py');
+        })
+        .map(entry => path.join(baseUrl, entry));
+};
+
+/**
  * A server to provide local extensions resource.
  */
 class OpenBlockExtension {
@@ -45,12 +63,20 @@ class OpenBlockExtension {
                 if (content.generator) {
                     content.generator = path.join(basePath, content.generator);
                 }
+                if (content.runtime) {
+                    content.runtime = path.join(basePath, content.runtime);
+                }
                 if (content.toolbox) {
                     content.toolbox = path.join(basePath, content.toolbox);
                 }
                 if (content.library) {
+                    const libraryDir = content.library;
+                    content.libraryFiles = listLibraryFiles(
+                        path.join(extPath, ext[0], libraryDir),
+                        path.join(basePath, libraryDir)
+                    );
                     // Used directly by the toolchain and uploader, requires an absolute address
-                    content.library = path.join(dataPath, basePath, content.library);
+                    content.library = path.join(dataPath, basePath, libraryDir);
                 }
                 if (content.main) {
                     content.main = path.join(basePath, content.main);

@@ -176,7 +176,7 @@ const assembleIndex = (type, resourcesPath, locale, libraryPrefix) => {
         const baseUrl = `${type}/${relDir}`;
         const processEntry = content => {
             ['iconURL', 'connectionIconURL', 'connectionSmallIconURL', 'blocks',
-                'generator', 'toolbox', 'main', 'translations', 'msg'].forEach(key => {
+                'generator', 'runtime', 'toolbox', 'main', 'translations', 'msg'].forEach(key => {
                 if (content[key]) {
                     content[key] = `${baseUrl}/${content[key]}`;
                 }

@@ -22,6 +22,7 @@
     "build": "rimraf dist && npm run build:extension && npm run build:device",
     "deploy": "npm run fetch && npm run build",
     "lint": "eslint ./",
+    "test:contract": "node test/contract-static-build.js",
     "test:update": "node test/update.js",
     "test:cnUpdate": "node test/cnUpdate.js",
     "test:multi-update": "node test/multi-update.js",

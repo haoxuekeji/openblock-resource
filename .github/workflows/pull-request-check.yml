@@ -1,0 +1,38 @@
+name: Pull Request Check
+
+on:
+  pull_request:
+    branches: [ main, main-haoxue ]
+    paths-ignore:
+      - 'README.md'
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: openblock-resource
+
+      # 契约测试需要 external-resources-v3 兄弟目录（多仓工作区布局）
+      - uses: actions/checkout@v4
+        with:
+          repository: ${{ github.repository_owner }}/external-resources-v3
+          path: external-resources-v3
+
+      - name: Use Node.js 24.x
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24.x
+
+      - run: npm ci
+        working-directory: openblock-resource
+
+      - name: Lint
+        run: npm run lint
+        working-directory: openblock-resource
+
+      # 静态快照契约：索引可解析、条目引用文件存在、发布关键扩展在位
+      - name: Static snapshot contract test
+        run: npm run test:contract
+        working-directory: openblock-resource

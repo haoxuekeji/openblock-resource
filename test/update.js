@@ -20,6 +20,6 @@ resourceServer.checkUpdate()
         }
     })
     .catch(err => {
-        console.log(err)
+        console.log(err);
         console.error(clc.red(`ERR!: Check update failed: ${err}`));
     });

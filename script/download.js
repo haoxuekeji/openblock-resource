@@ -14,9 +14,7 @@ const ProgressBar = require('progress');
 const extract = require('extract-zip');
 const hashFiles = require('hash-files');
 const clc = require('cli-color');
-const Progress = require('node-fetch-progress');
 
-const {formatTime} = require('../src/format');
 const parseArgs = require('./lib/parseArgs');
 
 
@@ -78,21 +76,11 @@ const download = (url, dest) => {
                 });
 
                 fileStream.on('finish', () => {
-                    //bar.update(1);
+                    // bar.update(1);
                     console.log(`${path.basename(dest)} download complete`);
                     return resolve();
                 });
 
-                const progress = new Progress(res, {throttle: 100});
-
-                progress.on('progress', state => {
-                    //console.log(state)
-                    // bar.update(state.progress, {
-                    //     tokenSpeed: state.rateh,
-                    //     tokenSize: `${state.doneh}/${state.totalh}`,
-                    //     tokenRemaining: formatTime(state.eta)
-                    // });
-                });
             })
             .catch(err => reject(err));
     });
@@ -145,8 +133,8 @@ getLatest()
                                 fs.rmSync(downloadPath, {recursive: true, force: true});
                                 console.log(clc.green(`\nExternal resource has been successfully downloaded and extracted to path: ${extractPath}`)); // eslint-disable-line max-len
                             })
-                            .catch((err) => {
-                                console.log(err)
+                            .catch(err => {
+                                console.log(err);
                                 console.error(clc.red(`ERR!: ${extractPath} has failed the folder checksum detection`));
                                 process.exit(1);
                             });

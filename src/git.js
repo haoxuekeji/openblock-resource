@@ -2,16 +2,10 @@ const fetch = require('node-fetch');
 const nodegit = require('nodegit');
 
 class Git {
-    constructor (repository, locale) {
+    constructor (repository) {
         this._repository = repository;
 
         const {owner, name} = this.normalize(this._repository);
-        // if (locale === 'zh-cn') {
-        //     this._url = `https://gitee.com/${owner}/${name}`;
-        //     this._releasesUrl = `https://gitee.com/api/v5/repos/${owner}/${name}/releases/latest`;
-        // } else {
-
-        // }
         this._url = `https://github.com/${owner}/${name}`;
         this._releasesUrl = `https://api.github.com/repos/${owner}/${name}/releases/latest`;
     }
